@@ -23,7 +23,7 @@ app.post("/application", (req, res) => {
   let application = new Application(renterId, ownerId, propertyId);
 
   dynamodb.putItem(application.query(), (err, data) => {
-    if (err) { 
+    if (err) {
       res.sendStatus(500);
     }
     else {
@@ -33,11 +33,23 @@ app.post("/application", (req, res) => {
 });
 
 app.get("/application", (req, res) => {
+
+	var docClient = new AWS.DynamoDB.DocumentClient();
+
   const params = {
-      TableName: "chaos-application-service"
+      TableName: "chaos-application-service",
+      KeyConditionExpression:"#owner_id = :ownerIdValue and #renter_id = :renterIdValue",
+      ExpressionAttributeNames: {
+        "#owner_id":"owner_id",
+        "#renter_id":"renter_id"
+      },
+      ExpressionAttributeValues: {
+        ":ownerIdValue": "3",
+        ":renterIdValue":"4"
+    }
   };
 
-  dynamodb.scan(params, (err, data) => {
+  docClient.query(params, (err, data) => {
     if (err) { console.log(err); }
     else { res.send(data); }
   });
