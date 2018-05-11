@@ -1,10 +1,13 @@
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
+
 const AWS = require("aws-sdk");
-AWS.config.update({region:'us-west-2'});
 const credentials = new AWS.SharedIniFileCredentials({profile: 'nordstrom-federated'});
+AWS.config.update({region:'us-west-2'});
 AWS.config.credentials = credentials;
+
+const Application = require("./Application");
 
 const port = 3000;
 
@@ -13,61 +16,50 @@ const dynamodb = new AWS.DynamoDB();
 app.use(bodyParser.json());
 
 app.post("/application", (req, res) => {
-    res.send(req.body);
+  const renterId = req.body.renter_id;
+  const ownerId = req.body.owner_id;
+  const propertyId = req.body.property_id;
+
+  let application = new Application(renterId, ownerId, propertyId);
+
+  dynamodb.putItem(application.query(), (err, data) => {
+    if (err) { 
+      res.sendStatus(500);
+    }
+    else {
+      res.send(data);
+    }
+  });
 });
 
-var params = {
-    Item: {
-     "application_id": {
-       N: "1"
-      },
-     "owner_id": {
-       N: "1"
-      },
-     "renter_id": {
-       N: "2"
-     },
-     "application_status": {
-       S: "pending"
-     }
-    },
-    ReturnConsumedCapacity: "TOTAL",
-    TableName: "chaos-application-service"
-};
-
-app.get("/", (req,res) => {
-    dynamodb.putItem(params, (err, data) => {
-        if (err) { console.log(err); }
-        else { console.log(data); }
-    })
-})
-
 app.get("/application", (req, res) => {
-    var params = {
+  const params = {
       TableName: "chaos-application-service"
-    }
-    dynamodb.scan(params, (err, data) => {
-      if (err) { console.log(err); }
-      else { res.send(data); }
-    })
+  };
+
+  dynamodb.scan(params, (err, data) => {
+    if (err) { console.log(err); }
+    else { res.send(data); }
+  });
 })
 
 app.get("/application/:id", (req, res) => {
-  const id = parseInt(req.params.id)
-  var params = {
+  const id = req.params.id;
+  const params = {
     Key: {
       "application_id": {
-        N: id.toString()
+        S: id
       }
     },
     TableName: "chaos-application-service"
-  }
+  };
+
   dynamodb.getItem(params, (err, data) => {
     if (err) { console.log(err); }
     else { res.send(data); }
-  })
+  });
 })
 
 app.listen(port, () => {
-    console.log(`Listening on port ${port}`)
+    console.log(`Listening on port ${port}`);
 })
