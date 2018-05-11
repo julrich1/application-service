@@ -18,17 +18,20 @@ app.post("/application", (req, res) => {
 
 var params = {
     Item: {
-     "AlbumTitle": {
-       S: "Somewhat Famous"
-      }, 
-     "Artist": {
-       S: "No One You Know"
-      }, 
-     "SongTitle": {
-       S: "Call Me Today"
-      }
-    }, 
-    ReturnConsumedCapacity: "TOTAL", 
+     "application_id": {
+       N: "1"
+      },
+     "owner_id": {
+       N: "1"
+      },
+     "renter_id": {
+       N: "2"
+     },
+     "application_status": {
+       S: "pending"
+     }
+    },
+    ReturnConsumedCapacity: "TOTAL",
     TableName: "chaos-application-service"
 };
 
@@ -37,6 +40,32 @@ app.get("/", (req,res) => {
         if (err) { console.log(err); }
         else { console.log(data); }
     })
+})
+
+app.get("/application", (req, res) => {
+    var params = {
+      TableName: "chaos-application-service"
+    }
+    dynamodb.scan(params, (err, data) => {
+      if (err) { console.log(err); }
+      else { res.send(data); }
+    })
+})
+
+app.get("/application/:id", (req, res) => {
+  const id = parseInt(req.params.id)
+  var params = {
+    Key: {
+      "application_id": {
+        N: id.toString()
+      }
+    },
+    TableName: "chaos-application-service"
+  }
+  dynamodb.getItem(params, (err, data) => {
+    if (err) { console.log(err); }
+    else { res.send(data); }
+  })
 })
 
 app.listen(port, () => {
