@@ -77,8 +77,13 @@ app.get("/application/:id", (req, res) => {
       res.sendStatus(500);
     }
     else {
-      const response = new ApplicationResponse(data.Item.application_id.S, data.Item.application_status.S, data.Item.renter_id.S, data.Item.owner_id.S);
-      res.send(response);
+      if (Object.keys(data).length === 0) {
+        res.send("Empty");
+      }
+      else {
+        const response = new ApplicationResponse(data.Item.application_id.S, data.Item.application_status.S, data.Item.renter_id.S, data.Item.owner_id.S);
+        res.send(response);
+      }
     }
   });
 })
