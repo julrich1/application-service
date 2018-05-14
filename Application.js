@@ -1,11 +1,12 @@
 const uuidV1 = require("uuid/v1");
 
-module.exports = class Application {  
-    constructor(renterId, ownerId, propertyId) {
-        this.applicationId = uuidV1();
+module.exports = class Application {
+    constructor(renterId, ownerId, propertyId, applicationId = uuidV1(), applicationStatus = "pending") {
+        this.applicationId = applicationId;
         this.renterId = renterId;
         this.ownerId = ownerId;
         this.propertyId = propertyId;
+        this.applicationStatus = applicationStatus;
     }
 
     query() {
@@ -24,7 +25,7 @@ module.exports = class Application {
                S: this.propertyId
              },
              "application_status": {
-               S: "pending"
+               S: this.applicationStatus
              }
             },
             ReturnConsumedCapacity: "TOTAL",
