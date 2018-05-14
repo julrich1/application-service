@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
+const appProcessor = require("./ApplicationProcessor");
 
 const AWS = require("aws-sdk");
 const credentials = new AWS.SharedIniFileCredentials({profile: 'nordstrom-federated'});
@@ -17,7 +18,7 @@ const docClient = new AWS.DynamoDB.DocumentClient();
 
 app.use(bodyParser.json());
 
-app.post("/application", (req, res) => {
+app.post("/application", (req, res, next) => {
   const renterId = req.body.renter_id;
   const ownerId = req.body.owner_id;
   const propertyId = req.body.property_id;
@@ -26,7 +27,8 @@ app.post("/application", (req, res) => {
 
   dynamodb.putItem(application.query(), (err, data) => {
     if (err) {
-      res.sendStatus(500);
+      let error = { status: 500 }
+      return next(error)
     }
     else {
       res.send(data);
@@ -34,7 +36,7 @@ app.post("/application", (req, res) => {
   });
 });
 
-app.get("/application", (req, res) => {
+app.get("/application", (req, res, next) => {
   const params = {
     TableName : 'chaos-application-service',
     FilterExpression: "contains (owner_id, :ownerId) OR contains (renter_id, :renterId)",
@@ -44,9 +46,10 @@ app.get("/application", (req, res) => {
     }
   };
 
-  docClient.scan(params, (err, data) => {
+  docClient.scan(params, (err, data, next) => {
     if (err) {
-      res.sendStatus(500);
+      let error = { status: 500 }
+      return next(error)
     }
     else {
       const response = [];
@@ -61,7 +64,7 @@ app.get("/application", (req, res) => {
   });
 })
 
-app.get("/application/:id", (req, res) => {
+app.get("/application/:id", (req, res, next) => {
   const id = req.params.id;
   const params = {
     Key: {
@@ -74,7 +77,8 @@ app.get("/application/:id", (req, res) => {
 
   dynamodb.getItem(params, (err, data) => {
     if (err) {
-      res.sendStatus(500);
+      let error = { status: 500 }
+      return next(error)
     }
     else {
       if (Object.keys(data).length === 0) {
@@ -88,45 +92,40 @@ app.get("/application/:id", (req, res) => {
   });
 })
 
-app.patch("/application/:id", (req, res) => {
+app.patch("/application/:id", (req, res, next) => {
   const id = req.params.id;
   const newStatus = req.body.status.toLowerCase();
-  if (newStatus === "cancelled" || newStatus === "approved" || newStatus === "declined") {
-    const params = {
-      Key: {
-        "application_id": {
-          S: id
-        }
-      },
-      TableName: "chaos-application-service"
-    };
-    //Does it exist?
-    dynamodb.getItem(params, (err, data) => {
+  if (newStatus === "cancelled") {
+    appProcessor.updateApplicationByRenter(id, newStatus, (err, data) => {
       if (err) {
-        res.sendStatus(400)
-      } else {
-        console.log("data:", data);
-        //get id from JWT token; add checkin date validation
-        if (data.Item.renter_id.S === "4") {
-          const application = new Application(data.Item.renter_id.S, data.Item.owner_id.S, data.Item.property_id.S, data.Item.application_id.S, newStatus);
-          dynamodb.putItem(application.query(), (err, data) => {
-            if (err) {
-              sendStatus(500);
-            } else {
-              res.send(data);
-            }
-          });
-        } else {
-          res.sendStatus(403);
-        }
+        let error = { status: err }
+        return next(error)  
       }
-    //permissions
+      else {
+        res.send(data);
+      }
+    });
+  }
+  else if (newStatus === "approved" || newStatus === "declined") {
+    appProcessor.updateApplicationByOwner(id, newStatus, (err, data) => {
+      if (err) {
+        let error = { status: err }
+        return next(error)  
+      }
+      else {
+        res.send(data);
+      }
+    });
+  }
+  else {
+    let error = { status: 400 }
+    return next(error)
+  }
+})
 
-    //validate time - can't cancel if they've already stayed there
-
-    })
-  } else {
-    return res.sendStatus(400);
+app.use((err, req, res, next) => {
+  if (err.status) {
+    return res.sendStatus(err.status);
   }
 })
 
