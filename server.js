@@ -87,7 +87,7 @@ app.get("/application/:id", (req, res, next) => {
         res.send("Empty");
       }
       else {
-        const response = new ApplicationResponse(data.Item.application_id.S, data.Item.application_status.S, data.Item.renter_id.S, data.Item.owner_id.S, application.property_id.S, application.reservation_start.S, application.reservation_end.S);
+        const response = new ApplicationResponse(data.Item.application_id.S, data.Item.application_status.S, data.Item.renter_id.S, data.Item.owner_id.S, data.Item.property_id.S, data.Item.reservation_start.S, data.Item.reservation_end.S);
         res.send(response);
       }
     }
