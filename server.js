@@ -8,10 +8,12 @@ AWS.config.update({region:'us-west-2'});
 AWS.config.credentials = credentials;
 
 const Application = require("./Application");
+const ApplicationResponse = require("./ApplicationResponse");
 
 const port = 3000;
 
 const dynamodb = new AWS.DynamoDB();
+const docClient = new AWS.DynamoDB.DocumentClient();
 
 app.use(bodyParser.json());
 
@@ -33,25 +35,29 @@ app.post("/application", (req, res) => {
 });
 
 app.get("/application", (req, res) => {
-
-	var docClient = new AWS.DynamoDB.DocumentClient();
-
   const params = {
-      TableName: "chaos-application-service",
-      KeyConditionExpression:"#owner_id = :ownerIdValue and #renter_id = :renterIdValue",
-      ExpressionAttributeNames: {
-        "#owner_id":"owner_id",
-        "#renter_id":"renter_id"
-      },
-      ExpressionAttributeValues: {
-        ":ownerIdValue": "3",
-        ":renterIdValue":"4"
+    TableName : 'chaos-application-service',
+    FilterExpression: "contains (owner_id, :ownerId) OR contains (renter_id, :renterId)",
+    ExpressionAttributeValues : {   
+        ':ownerId' : "31",
+        ':renterId' : "31"
     }
   };
 
-  docClient.query(params, (err, data) => {
-    if (err) { console.log(err); }
-    else { res.send(data); }
+  docClient.scan(params, (err, data) => {
+    if (err) {
+      res.sendStatus(500);
+    }
+    else {
+      const response = [];
+
+      for (let application of data.Items) {
+        const appResponse = new ApplicationResponse(application.application_id, application.application_status, application.renter_id, application.owner_id);
+        response.push(appResponse)
+      }
+
+      res.send(response);
+    }
   });
 })
 
@@ -67,8 +73,13 @@ app.get("/application/:id", (req, res) => {
   };
 
   dynamodb.getItem(params, (err, data) => {
-    if (err) { console.log(err); }
-    else { res.send(data); }
+    if (err) {
+      res.sendStatus(500);
+    }
+    else {
+      const response = new ApplicationResponse(data.Item.application_id.S, data.Item.application_status.S, data.Item.renter_id.S, data.Item.owner_id.S);
+      res.send(response);
+    }
   });
 })
 
