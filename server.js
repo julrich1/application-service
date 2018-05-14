@@ -22,8 +22,10 @@ app.post("/application", (req, res, next) => {
   const renterId = req.body.renter_id;
   const ownerId = req.body.owner_id;
   const propertyId = req.body.property_id;
+  const reservationStart = req.body.reservation_start;
+  const reservationEnd = req.body.reservation_end;
 
-  let application = new Application(renterId, ownerId, propertyId);
+  let application = new Application(renterId, ownerId, propertyId, reservationStart, reservationEnd);
 
   dynamodb.putItem(application.query(), (err, data) => {
     if (err) {
@@ -55,7 +57,7 @@ app.get("/application", (req, res, next) => {
       const response = [];
 
       for (let application of data.Items) {
-        const appResponse = new ApplicationResponse(application.application_id, application.application_status, application.renter_id, application.owner_id);
+        const appResponse = new ApplicationResponse(application.application_id, application.application_status, application.renter_id, application.owner_id, application.property_id, application.reservation_start, application.reservation_end);
         response.push(appResponse)
       }
 
@@ -85,7 +87,7 @@ app.get("/application/:id", (req, res, next) => {
         res.send("Empty");
       }
       else {
-        const response = new ApplicationResponse(data.Item.application_id.S, data.Item.application_status.S, data.Item.renter_id.S, data.Item.owner_id.S);
+        const response = new ApplicationResponse(data.Item.application_id.S, data.Item.application_status.S, data.Item.renter_id.S, data.Item.owner_id.S, application.property_id.S, application.reservation_start.S, application.reservation_end.S);
         res.send(response);
       }
     }
@@ -99,7 +101,7 @@ app.patch("/application/:id", (req, res, next) => {
     appProcessor.updateApplicationByRenter(id, newStatus, (err, data) => {
       if (err) {
         let error = { status: err }
-        return next(error)  
+        return next(error)
       }
       else {
         res.send(data);
@@ -110,7 +112,7 @@ app.patch("/application/:id", (req, res, next) => {
     appProcessor.updateApplicationByOwner(id, newStatus, (err, data) => {
       if (err) {
         let error = { status: err }
-        return next(error)  
+        return next(error)
       }
       else {
         res.send(data);
