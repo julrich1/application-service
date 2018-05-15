@@ -2,6 +2,8 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const appProcessor = require("./ApplicationProcessor");
+const dateVerify = require("./ApplicationDatesCheck");
+const moment = require("moment");
 
 const AWS = require("aws-sdk");
 const credentials = new AWS.SharedIniFileCredentials({profile: 'nordstrom-federated'});
@@ -25,17 +27,26 @@ app.post("/application", (req, res, next) => {
   const reservationStart = req.body.reservation_start;
   const reservationEnd = req.body.reservation_end;
 
-  let application = new Application(renterId, ownerId, propertyId, reservationStart, reservationEnd);
+  //check with Property Available Service to see if service is available
+  //if not return “invalid request”
+  // dateVerify.checkApplicationDatesAvailability(propertyId, reservationStart, reservationEnd, (err, data) => {
+  //   if (err) {
+  //     res.sendStatus(err);
+  //   } else {
 
-  dynamodb.putItem(application.query(), (err, data) => {
-    if (err) {
-      let error = { status: 500 }
-      return next(error)
-    }
-    else {
-      res.send(data);
-    }
-  });
+      let application = new Application(renterId, ownerId, propertyId, reservationStart, reservationEnd);
+
+      dynamodb.putItem(application.query(), (err, data) => {
+        if (err) {
+          let error = { status: 500 }
+          return next(error)
+        }
+        else {
+          res.send(data);
+        }
+      });
+    // }
+  // });
 });
 
 app.get("/application", (req, res, next) => {
@@ -63,7 +74,7 @@ app.get("/application", (req, res, next) => {
 
       res.send(response);
     }
-  });
+  })
 })
 
 app.get("/application/:id", (req, res, next) => {
@@ -104,6 +115,7 @@ app.patch("/application/:id", (req, res, next) => {
         return next(error)
       }
       else {
+        //TODO: let Property Availability know the reservation is cancelled and to release the dates
         res.send(data);
       }
     });
@@ -115,6 +127,7 @@ app.patch("/application/:id", (req, res, next) => {
         return next(error)
       }
       else {
+        //TODO: if approved, let Property Availability know the reservation has been approved and to block out the dates
         res.send(data);
       }
     });

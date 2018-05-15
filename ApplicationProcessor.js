@@ -13,12 +13,11 @@ module.exports = {
             Key: {
             "application_id": {
                 S: appId
-            }
+              }
             },
             TableName: "chaos-application-service"
         };
-    
-        //Does it exist?
+
         dynamodb.getItem(params, (err, data) => {
             if (err) {
                 cb(400, null);
@@ -38,7 +37,7 @@ module.exports = {
                 }
             }
             //permissions
-        
+
             //validate time - can't cancel if they've already stayed there
         });
     },
@@ -48,12 +47,11 @@ module.exports = {
             Key: {
             "application_id": {
                 S: appId
-            }
+              }
             },
             TableName: "chaos-application-service"
         };
-    
-        //Does it exist?
+
         dynamodb.getItem(params, (err, data) => {
             if (err) {
                 cb(400, null);
@@ -73,7 +71,7 @@ module.exports = {
                 }
             }
             //permissions
-        
+
             //validate time - can't cancel if they've already stayed there
         });
     }
