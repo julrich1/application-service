@@ -29,10 +29,10 @@ app.post("/application", (req, res, next) => {
 
   //check with Property Available Service to see if service is available
   //if not return “invalid request”
-  // dateVerify.checkApplicationDatesAvailability(propertyId, reservationStart, reservationEnd, (err, data) => {
-  //   if (err) {
-  //     res.sendStatus(err);
-  //   } else {
+  dateVerify.checkApplicationDatesAvailability(propertyId, reservationStart, reservationEnd, (err, data) => {
+    if (err) {
+      res.sendStatus(err);
+    } else {
 
       let application = new Application(renterId, ownerId, propertyId, reservationStart, reservationEnd);
 
@@ -45,8 +45,8 @@ app.post("/application", (req, res, next) => {
           res.send(data);
         }
       });
-    // }
-  // });
+    }
+  });
 });
 
 app.get("/application", (req, res, next) => {
@@ -108,6 +108,7 @@ app.get("/application/:id", (req, res, next) => {
 app.patch("/application/:id", (req, res, next) => {
   const id = req.params.id;
   const newStatus = req.body.status.toLowerCase();
+
   if (newStatus === "cancelled") {
     appProcessor.updateApplicationByRenter(id, newStatus, (err, data) => {
       if (err) {
